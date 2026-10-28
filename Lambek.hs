@@ -39,6 +39,25 @@ dec_lfoc gammaL (Atm a) gammaR p = False
 -- Step 3
 -- make appropriate calls to dec_rinv.
 -- main challenge: each word w in ws can have multiple lexical entries (w, A, _) in lex.
+-- 1. Given a word, retrieve all its possible types.
+-- 2. Given a list of words, consider the combinations of types available for those words, and check the resulting type lists using dec_rinv.
+
 isGrammatical :: Lexicon sem -> [String] -> Bool
-isGrammatical lex ws = undefined
+isGrammatical _ [] = False -- empty sentence is nongrammatical.
+-- stp: the type that the entire sequence of words has to derive to, to count as grammatical. 
+isGrammatical (Lexicon items stp) words = checkRinvs (combinations (wordTypes items words)) 
+    where
+        -- helper function that gives you a nested list representing which types each word can be e.g. [[NP], [NP, S], [NP]]
+        wordTypes _ [] = []
+        -- this list comprehension gives list of types for one word
+        wordTypes items (w:ws) = [ltp | (str, ltp, _ ) <- items, str == w] : (wordTypes items ws) 
+
+        -- helper function that gives a nested list with all type combinations, taking one type from each word's possible types list.
+        combinations [] = [[]]
+        -- idea: take one type for the first word, t, and prepend it to all later possible combinations.  
+        combinations (types:rest) = [t:combo | t <- types, combo <- combinations rest]
+
+        -- helper function that checks whether at least 1 combination passes the previous rinv function check.
+        checkRinvs [] = False
+        checkRinvs (gamma:gammas) = (dec_rinv gamma stp) || (checkRinvs gammas)
 
