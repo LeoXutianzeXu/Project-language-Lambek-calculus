@@ -5,6 +5,11 @@ module LExp where
 import Data.List
 
 type Var = String
+-- V Var: variable
+-- A LExp LExp: application. 
+  -- A (A (V "f") (V "x")) (V "y") means (f x) y.
+-- L Var LExp: lambda abstraction. 
+  -- L "x" (V "x") means \x. x i.e. we create a lambda function with parameter x and body x.
 data LExp = V Var | A LExp LExp | L Var LExp
   deriving (Show,Read)
 

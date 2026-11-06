@@ -2,9 +2,52 @@
 
 module Lambek where
 
+import LExp
 import LTypes
 
--- Step 1
+-- Var: name of a variable in a lambda expression. = String
+-- The new context might contain ("Conor_1", Atm "NP"), letting the derivation produce expressions
+-- containing the actual variable names.
+
+-- gamma = [("x", Atm "np"), ("y", Atm "s")]:
+-- x is available and has type np.
+-- y is available and has type s.
+
+-- to derive s, one possible result is [V "y"], using the variable y directly.
+
+-- takes: list of variables paired with types.
+-- returns a list of lambda expressions: one for each successful derivation.
+der_rinv :: [(Var,LTp)] -> LTp -> [LExp]
+der_rinv [] _ = [] -- False implies no derivations
+der_rinv gamma (DivL c d) =
+    -- same structure as the old function: introduce a new assumption c (but this time paired with
+    -- x): (x,c):gamma, and try to derive d. 
+
+    -- introduce a fresh variable name to track the new assumption.
+    let x = fresh [V x | (x, _) <- gamma]
+
+    -- we get a list of derivations able to derive d.
+    -- first: recursively try to derive d:
+    -- der_rinv ((x,c):gamma) d may return something like [V "a", V "b"]. Each e is an element.
+    -- then L x e | e wraps each expression in a lambda abstraction.
+    in [L x e | e <- der_rinv ((x,c):gamma) d] 
+der_rinv gamma (DivR d c) =
+    -- similar to above and using same structure as the old function.
+    let x = fresh [V x | (x, _) <- gamma]
+    in [L x e | e <- der_rinv (gamma ++ [(x,c)]) d]
+der_rinv gamma (Atm p) = split [] gamma
+    where
+        split _ [] = []
+        -- similar structure to the old function
+        -- foldl A (V x) args: applies variable x to every argument in the list. 
+        split gammaL1 ((x,g):ammaR2) =
+            [foldl A (V x) args | args <- der_lfoc gammaL1 g ammaR2 p] 
+            ++ split (gammaL1 ++ [(x,g)]) ammaR2
+
+-- der_lfoc :: [(Var,LTp)] -> LTp -> [(Var,LTp)] -> Atm -> [[LExp]]
+
+-- Old functions for reference
+
 -- do we have [LTp] -> LTp?
 dec_rinv :: [LTp] -> LTp -> Bool
 dec_rinv [] _ = False
@@ -17,7 +60,6 @@ dec_rinv gamma (Atm p) = split [] gamma -- try all possible splits of gamma
                                    then True
                                    else split (gammaL1++[g]) ammaR2
 
--- Step 2
 dec_lfoc :: [LTp] -> LTp -> [LTp] -> Atm -> Bool
 dec_lfoc gammaL (DivL a b) gammaR p = split [] gammaL -- split function: I try all the possible splits of gammaL
     where
