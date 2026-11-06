@@ -4,6 +4,7 @@ import Control.Exception
 
 import LTypes
 import qualified Lambek
+import LExp (prettyLExp)
 
 import Parser
 import PySupport
@@ -24,7 +25,13 @@ repl elx phandle = do
   let ws = map stdize $ words line
   -- test if the string of words is a grammatical sentence according to the lexicon
   if Lambek.isGrammatical elx ws
-    then putStrLn "That is a well-formed sentence!"
+    then do 
+      putStrLn "I can derive your sentence as follows:"
+      -- print lambda expressions: 
+      let printExpr e = putStrLn ("   " ++ prettyLExp e)
+
+      -- apply the printExpr to each derivation in the list of derivations returned. 
+      mapM_ printExpr (Lambek.derive elx ws)
     else putStrLn "That is not a well-formed sentence"
   -- repeat
   repl elx phandle
