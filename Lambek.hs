@@ -39,15 +39,12 @@ der_rinv gamma (Atm p) = split [] gamma
     where
         split _ [] = []
         -- similar structure to the old function
-        -- foldl A (V x) args: applies variable x to every argument in the list. 
+        -- foldl A (V x) args: applies variable x to every argument in the list.
         split gammaL1 ((x,g):ammaR2) =
             [foldl A (V x) args | args <- der_lfoc gammaL1 g ammaR2 p] 
             ++ split (gammaL1 ++ [(x,g)]) ammaR2
 
--- der_lfoc :: [(Var,LTp)] -> LTp -> [(Var,LTp)] -> Atm -> [[LExp]]
-
--- Old functions for reference
-
+-- Old version for reference:
 -- do we have [LTp] -> LTp?
 dec_rinv :: [LTp] -> LTp -> Bool
 dec_rinv [] _ = False
@@ -60,6 +57,32 @@ dec_rinv gamma (Atm p) = split [] gamma -- try all possible splits of gamma
                                    then True
                                    else split (gammaL1++[g]) ammaR2
 
+der_lfoc :: [(Var,LTp)] -> LTp -> [(Var,LTp)] -> Atm -> [[LExp]]
+-- Difference from the old version of this function: in the "complex" division cases, 
+-- collect all possible lambda expressions representing valid derivations.
+-- We still try all possible splits of gammaL or gammaR like before.
+der_lfoc gammaL (DivL a b) gammaR p = split [] gammaL
+    where
+        split _ [] = []
+        split gammaL1 (g:ammaL2) =
+            [e:es | e <- der_rinv (g:ammaL2) a,
+                    es <- der_lfoc gammaL1 b gammaR p]
+            ++ split (gammaL1++[g]) ammaL2
+der_lfoc gammaL (DivR b a) gammaR p = split [] gammaR
+    where
+        split _ [] = []
+        split gammaR1 (g:ammaR2) =
+            [e:es | e <- der_rinv (gammaR1++[g]) a,
+                    es <- der_lfoc gammaL b ammaR2 p]
+            ++ split (gammaR1++[g]) ammaR2
+der_lfoc [] (Atm p1) [] p2 = if p1 == p2
+-- The derivation succeeds immediately at the base case, so no lambda expressions need to be 
+-- generated at this step, hence we return a list containing an empty list
+                             then [[]] 
+                             else []
+der_lfoc _ (Atm _) _ _ = []
+
+-- Old version for reference
 dec_lfoc :: [LTp] -> LTp -> [LTp] -> Atm -> Bool
 dec_lfoc gammaL (DivL a b) gammaR p = split [] gammaL -- split function: I try all the possible splits of gammaL
     where
@@ -78,7 +101,7 @@ dec_lfoc [] (Atm p1) [] p2 = if p1 == p2
                              else False 
 dec_lfoc gammaL (Atm a) gammaR p = False
 
--- Step 3
+-- Old version for reference.
 -- make appropriate calls to dec_rinv.
 -- main challenge: each word w in ws can have multiple lexical entries (w, A, _) in lex.
 -- 1. Given a word, retrieve all its possible types.
